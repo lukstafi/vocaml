@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import * as removeMd from 'remove-markdown';
+// import * as removeMd from 'remove-markdown';
 
 let fileLocationPattern =
 	/"([^"]+)":([0-9]+)|"([^"]+)", line ([0-9]+),|"([^"]+)", lines ([0-9]+)-/g;
@@ -10,7 +10,7 @@ async function visitFileCurrentLine(textEditor: vscode.TextEditor) {
 	const doc = textEditor.document;
 	const line = doc.lineAt(textEditor.selection.active.line);
 	const match = fileLocationPattern.exec(line.text);
-	if (!match) return;
+	if (!match) { return; }
 	await vscode.commands.executeCommand('workbench.action.quickOpen', `${match[1]}:${match[2]}`);
 }
 
@@ -25,6 +25,10 @@ async function getTypeFromHover(doc: vscode.TextDocument, pos: vscode.Position) 
 let bindingPattern =
 	/let ([a-zA-Z_0-9\']+) =|let .+ as ([a-zA-Z_0-9\']+) =/dg;
 
+// Workaround, see:
+// https://stackoverflow.com/questions/72119570/why-doesnt-vs-code-typescript-recognize-the-indices-property-on-the-result-of-r
+type RegExpExecArrayWithIndices = RegExpExecArray & { indices: Array<[number, number]> };
+	
 async function addTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.TextEditorEdit) {
 	bindingPattern.lastIndex = 0;
 	const doc = textEditor.document;
@@ -34,8 +38,8 @@ async function addTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.TextEdi
 	}
 	const text = doc.getText(textEditor.selection);
 	const offset = doc.offsetAt(textEditor.selection.start);
-	let matched: RegExpExecArray | null;
-	while (matched = bindingPattern.exec(text)) {
+	let matched: RegExpExecArrayWithIndices | null;
+	while (matched = (bindingPattern.exec(text) as RegExpExecArrayWithIndices | null)) {
 		// How to supress the type error?
 		const typeAtP = await getTypeFromHover(doc, doc.positionAt(offset + matched.indices[1][0] + 1));
 		const insertPos = doc.positionAt(offset + matched.indices[1][1] + 1);
@@ -55,8 +59,8 @@ async function removeTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.Text
 	}
 	const text = doc.getText(textEditor.selection);
 	const offset = doc.offsetAt(textEditor.selection.start);
-	let matched: RegExpExecArray | null;
-	while (matched = bindingWithTypePattern.exec(text)) {
+	let matched: RegExpExecArrayWithIndices | null;
+	while (matched = (bindingWithTypePattern.exec(text) as RegExpExecArrayWithIndices | null)) {
 		// How to supress the type error?
 		const typePosStart = doc.positionAt(offset + matched.indices[2][0]);
 		const typePosEnd = doc.positionAt(offset + matched.indices[2][1]);
