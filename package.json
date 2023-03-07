@@ -9,15 +9,41 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+      "onCommand:vocaml.addTypeAnnots",
+      "onCommand:vocaml.removeTypeAnnots",
+      "onCommand:vocaml.visitFileCurrentLine",  
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "vocaml.helloWorld",
-        "title": "Hello World"
+        "command": "vocaml.addTypeAnnots",
+        "title": "Add Type Annotations to bindings",
+        "shortTitle": "Add Type Annotations"
+      },
+      {
+        "command": "vocaml.removeTypeAnnots",
+        "title": "Remove Type Annotations from bindings",
+        "shortTitle": "Remove Type Annotations"
+      },
+      {
+        "command": "vocaml.visitFileCurrentLine",
+        "title": "Visit File from Current Line file name and position information",
+        "shortTitle": "Visit File from Current Line"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "VOCaml",
+      "properties": {
+        "vocaml.fileLocationPattern": {
+          "markdownDescription": "Regular Expression for detecting file locations",
+          "type": "string",
+          "default": "\"([^\"]+)\":([0-9]+)|\"([^\"]+)\", line ([0-9]+),|\"([^\"]+)\", lines ([0-9]+)-",
+          "scope": "language-overridable"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -45,5 +71,9 @@
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1",
     "@vscode/test-electron": "^2.2.3"
+  },
+  "dependencies": {
+    "remove-markdown": "^0.3.0"
   }
+
 }
