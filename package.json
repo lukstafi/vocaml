@@ -12,25 +12,25 @@
   "activationEvents": [
       "onCommand:vocaml.addTypeAnnots",
       "onCommand:vocaml.removeTypeAnnots",
-      "onCommand:vocaml.visitFileCurrentLine",  
+      "onCommand:vocaml.visitFileCurrentLine"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "vocaml.addTypeAnnots",
-        "title": "Add Type Annotations to bindings",
-        "shortTitle": "Add Type Annotations"
+        "title": "VOCaml: Add Type Annotations to bindings",
+        "shortTitle": "VOCaml: Add Type Annotations"
       },
       {
         "command": "vocaml.removeTypeAnnots",
-        "title": "Remove Type Annotations from bindings",
-        "shortTitle": "Remove Type Annotations"
+        "title": "VOCaml: Remove Type Annotations from bindings",
+        "shortTitle": "VOCaml: Remove Type Annotations"
       },
       {
         "command": "vocaml.visitFileCurrentLine",
-        "title": "Visit File from Current Line file name and position information",
-        "shortTitle": "Visit File from Current Line"
+        "title": "VOCaml: Visit File from Current Line file name and position information",
+        "shortTitle": "VOCaml: Visit File from Current Line"
       }
     ],
     "configuration": {
