@@ -1,7 +1,9 @@
 {
   "name": "vocaml",
+  "publisher": "lukstafi",
   "displayName": "VOCaml",
   "description": "Helpers for coding in OCaml",
+  "icon": "logo.png",
   "version": "1.0.0",
   "engines": {
     "vscode": "^1.76.0"
