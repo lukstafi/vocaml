@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+// import { type } from 'os';
 import * as vscode from 'vscode';
-// import * as removeMd from 'remove-markdown';
 
 let fileLocationPattern =
 	/"([^"]+)":([0-9]+)|"([^"]+)", line ([0-9]+),|"([^"]+)", lines ([0-9]+)-/g;
@@ -14,22 +14,39 @@ async function visitFileCurrentLine(textEditor: vscode.TextEditor) {
 	await vscode.commands.executeCommand('workbench.action.quickOpen', `${match[1]}:${match[2]}`);
 }
 
+let markdownPattern =
+	/^```ocaml\s*(.+)\s*```|^`\s*(.+)\s*`$/;
+
 async function getTypeFromHover(doc: vscode.TextDocument, pos: vscode.Position) {
 	const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
     'vscode.executeHoverProvider', doc.uri, pos
 	);
-	// use removeMd here?
-	return hovers[0].contents[0].toString();
+	// "```ocaml\nsymbol axis_index list\n```"
+	const hover = hovers[0].contents[0];
+	const val = typeof hover === 'string' ? hover : hover.value;
+	let match = markdownPattern.exec(val);
+	if (!match) { return null; }
+	return match[1];
 }
 
+// TypeScript / VSCode does not currently have support for group indices (flag 'd'), partition the
+// full pattern into groups for easier computing of positions.
 let bindingPattern =
-	/let ([a-zA-Z_0-9\']+) =|let .+ as ([a-zA-Z_0-9\']+) =/dg;
+	/(let )([a-zA-Z_0-9']+) =|(let .+ as )([a-zA-Z_0-9']+) =/g;
 
-// Workaround, see:
-// https://stackoverflow.com/questions/72119570/why-doesnt-vs-code-typescript-recognize-the-indices-property-on-the-result-of-r
-type RegExpExecArrayWithIndices = RegExpExecArray & { indices: Array<[number, number]> };
-	
-async function addTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.TextEditorEdit) {
+function nthGroupPos(n: number, doc: vscode.TextDocument, offset: number, match: RegExpExecArray,
+	delta: number = 0) {
+	let result = offset + match.index;
+	for (let i = 0; i < n - 1; ++i) {
+		result += match[i + 1].length;
+	}
+	return doc.positionAt(result + delta);
+}
+function nthGroupRange(n: number, doc: vscode.TextDocument, offset: number, match: RegExpExecArray) {
+	return new vscode.Range(nthGroupPos(n, doc, offset, match), nthGroupPos(n + 1, doc, offset, match));
+}
+
+async function addTypeAnnots(textEditor: vscode.TextEditor) {
 	bindingPattern.lastIndex = 0;
 	const doc = textEditor.document;
 	if (textEditor.selection.isEmpty || textEditor.selection.isSingleLine) {
@@ -38,17 +55,23 @@ async function addTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.TextEdi
 	}
 	const text = doc.getText(textEditor.selection);
 	const offset = doc.offsetAt(textEditor.selection.start);
-	let matched: RegExpExecArrayWithIndices | null;
-	while (matched = (bindingPattern.exec(text) as RegExpExecArrayWithIndices | null)) {
+	let matched: RegExpExecArray | null;
+	let edits: {pos: vscode.Position, txt: string}[] = [];
+	while (matched = bindingPattern.exec(text)) {
 		// How to supress the type error?
-		const typeAtP = await getTypeFromHover(doc, doc.positionAt(offset + matched.indices[1][0] + 1));
-		const insertPos = doc.positionAt(offset + matched.indices[1][1] + 1);
-		edit.insert(insertPos, ': ' + typeAtP);
+		const typeAtP = await getTypeFromHover(doc, nthGroupPos(2, doc, offset, matched, 1));
+		if (!typeAtP) { continue; }
+		edits.push({ pos: nthGroupPos(3, doc, offset, matched), txt: ': ' + typeAtP });
 	}
+	await textEditor.edit(edit => {
+		for (const ins of edits) {
+			edit.insert(ins.pos, ins.txt);
+		}
+	});
 }
 
 let bindingWithTypePattern =
-	/let ([a-zA-Z_0-9\']+) ?(: ?[^=]+)=|let .+ as ([a-zA-Z_0-9\']+) ?(: ?[^=]+)=/dg;
+	/(let )([a-zA-Z_0-9']+)( ?: ?[^=]+)=|(let .+ as )([a-zA-Z_0-9']+)( ?: ?[^=]+)=/g;
 
 async function removeTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.TextEditorEdit) {
 	bindingWithTypePattern.lastIndex = 0;
@@ -59,12 +82,10 @@ async function removeTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.Text
 	}
 	const text = doc.getText(textEditor.selection);
 	const offset = doc.offsetAt(textEditor.selection.start);
-	let matched: RegExpExecArrayWithIndices | null;
-	while (matched = (bindingWithTypePattern.exec(text) as RegExpExecArrayWithIndices | null)) {
+	let matched: RegExpExecArray | null;
+	while (matched = bindingWithTypePattern.exec(text)) {
 		// How to supress the type error?
-		const typePosStart = doc.positionAt(offset + matched.indices[2][0]);
-		const typePosEnd = doc.positionAt(offset + matched.indices[2][1]);
-		edit.replace(new vscode.Range(typePosStart, typePosEnd), '');
+		edit.replace(nthGroupRange(3, doc, offset, matched), ' ');
 	}
 }
 
@@ -81,7 +102,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerTextEditorCommand(
 		'vocaml.visitFileCurrentLine', textEditor => visitFileCurrentLine(textEditor)));
 	context.subscriptions.push(vscode.commands.registerTextEditorCommand(
-		'vocaml.addTypeAnnots', (textEditor, edit) => addTypeAnnots(textEditor, edit)));
+		'vocaml.addTypeAnnots', textEditor => addTypeAnnots(textEditor)));
 	context.subscriptions.push(vscode.commands.registerTextEditorCommand(
 		'vocaml.removeTypeAnnots', (textEditor, edit) => removeTypeAnnots(textEditor, edit)));
 }
