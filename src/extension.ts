@@ -33,10 +33,10 @@ async function getTypeFromHover(doc: vscode.TextDocument, pos: vscode.Position) 
 
 // Handles function let-bindings with up to 6 arguments (no non-identifier patterns).
 let bindingPattern =
-	/(let )([a-zA-Z_0-9']+)(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?\s*=/g;
+	/(let(?:%[.a-zA-Z0-9_]+)? )([a-zA-Z_0-9']+)(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?\s*=/g;
 
 let bindingAsPattern =
-	/(let .+ as )([a-zA-Z_0-9']+)\s*=/g;
+	/(let(?:%[.a-zA-Z0-9_]+)? .+ as )([a-zA-Z_0-9']+)\s*=/g;
 
 function nthGroupPos(n: number, doc: vscode.TextDocument, offset: number, match: RegExpExecArray,
 	delta: number = 0) {
@@ -101,9 +101,9 @@ async function addTypeAnnots(textEditor: vscode.TextEditor) {
 
 // Handles function let-bindings with up to 6 arguments (no non-identifier patterns).
 let bindingWithTypePattern =
-	/(let )([a-zA-Z_0-9']+)(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*:\s*[^=]+)=/g;
+	/(let(?:%[.a-zA-Z0-9_]+)? )([a-zA-Z_0-9']+)(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*:\s*[^=]+)=/g;
 let bindingWithTypeAsPattern =
-	/(let .+\s+as\s+)([a-zA-Z_0-9']+)(\s+:\s*[^=]+)=/g;
+	/(let(?:%[.a-zA-Z0-9_]+)? .+\s+as\s+)([a-zA-Z_0-9']+)(\s+:\s*[^=]+)=/g;
 
 async function removeTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.TextEditorEdit) {
 	bindingWithTypePattern.lastIndex = 0;
