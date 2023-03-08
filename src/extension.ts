@@ -60,17 +60,17 @@ async function addTypeAnnots(textEditor: vscode.TextEditor) {
 	const text = doc.getText(textEditor.selection);
 	const offset = doc.offsetAt(textEditor.selection.start);
 	let matched: RegExpExecArray | null;
-	let edits: {pos: vscode.Position, txt: string}[] = [];
+	let edits: {pos: vscode.Position | vscode.Range, txt: string}[] = [];
 	while ((matched = bindingPattern.exec(text)) || (matched = bindingAsPattern.exec(text))) {
 		// Group 1 is the let-keyword. Group 3 is the first arg binding for functions.
 		let numArgs = 0;
-		for (let i = 3; i < matched.length; i++) {
+		for (let i = 3; i < matched.length; ++i) {
 			if (!matched[i]) { continue; }
 			++numArgs;
 			const argType = await getTypeFromHover(doc, nthGroupPos(i, doc, offset, matched, 1));
 			if (!argType) { continue; }
 			edits.push({
-				pos: nthGroupPos(i + 1, doc, offset, matched),
+				pos: nthGroupRange(i, doc, offset, matched),
 				txt: ' (' + matched[i].trim() + ': ' + argType + ')'
 			});
 		}
