@@ -41,8 +41,8 @@ let bindingAsPattern =
 function nthGroupPos(n: number, doc: vscode.TextDocument, offset: number, match: RegExpExecArray,
 	delta: number = 0) {
 	let result = offset + match.index;
-	for (let i = 0; i < n - 1; ++i) {
-		if (match[i + 1]) { result += match[i + 1].length; }
+	for (let i = 1; i < n; ++i) {
+		if (match[i]) { result += match[i].length; }
 	}
 	return doc.positionAt(result + delta);
 }
@@ -62,10 +62,29 @@ async function addTypeAnnots(textEditor: vscode.TextEditor) {
 	let matched: RegExpExecArray | null;
 	let edits: {pos: vscode.Position, txt: string}[] = [];
 	while ((matched = bindingPattern.exec(text)) || (matched = bindingAsPattern.exec(text))) {
-		// How to supress the type error?
-		const typeAtP = await getTypeFromHover(doc, nthGroupPos(2, doc, offset, matched, 1));
-		if (!typeAtP) { continue; }
-		edits.push({ pos: nthGroupPos(3, doc, offset, matched), txt: ': ' + typeAtP });
+		// Group 1 is the let-keyword. Group 3 is the first arg binding for functions.
+		let numArgs = 0;
+		for (let i = 3; i < matched.length; i++) {
+			if (!matched[i]) { continue; }
+			++numArgs;
+			const argType = await getTypeFromHover(doc, nthGroupPos(i, doc, offset, matched, 1));
+			if (!argType) { continue; }
+			edits.push({
+				pos: nthGroupPos(i + 1, doc, offset, matched),
+				txt: ' (' + matched[i].trim() + ': ' + argType + ')'
+			});
+		}
+		let retType = await getTypeFromHover(doc, nthGroupPos(2, doc, offset, matched, 1));
+		if (!retType) { continue; }
+		if (numArgs > 0) {
+			let types = retType.split('->');
+			types = types.slice(numArgs);
+			retType = types.join('->');
+		}
+		edits.push({
+			pos: nthGroupPos(matched.length, doc, offset, matched),
+			txt: ': ' + retType.trim()
+		});
 	}
 	await textEditor.edit(edit => {
 		for (const ins of edits) {
