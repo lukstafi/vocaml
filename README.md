@@ -1,71 +1,29 @@
 # vocaml README
 
-This is the README for your extension "vocaml". After writing up a brief description, we recommend including the following sections.
+VOCaml is a VS Code extension providing helpers for working with [OCaml](https://ocaml.org/) code. Currently, it has three commands:
 
-## Features
+- _VOCaml: Add Type Annotations_ inserts type annotations around let bindings.
+- _VOCaml: Remove Type Annotations_ removes type annotations from let bindings.
+- _VOCaml: Visit File from Current Line_ triggers a _Quick Open_ dialog populated with a file and line number retrieved from the line at cursor position.
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+VOCaml is a companion to [`ppx_minidebug`](https://github.com/lukstafi/ppx_minidebug), but it can be used for its own merits.
 
-For example if there is an image subfolder under your extension project workspace:
+## Features and Limitations
 
-\!\[feature X\]\(images/feature-x.png\)
+Currently, VOCaml retrieves types from the first line of hover boxes, and uses regular expressions for parsing. Its implementation is simple, but that leads to some restrictions:
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- For value bindings, only single-identier and `as`-alias bindings are supported.
+- For function bindings such as `let foo bar baz = ...`, only single-identifier arguments are supported.
+- Up to 6 arguments in function bindings are supported.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+Currently, VOCaml has just one setting:
 
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
+* `vocaml.fileLocationPattern`: a regular expression for detecting file positions.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
-
 ### 1.0.0
 
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial release of VOCaml.
