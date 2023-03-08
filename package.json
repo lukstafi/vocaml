@@ -29,7 +29,7 @@
       },
       {
         "command": "vocaml.visitFileCurrentLine",
-        "title": "VOCaml: Visit File from Current Line file name and position information",
+        "title": "VOCaml: Visit File from Current Line with position",
         "shortTitle": "VOCaml: Visit File from Current Line"
       }
     ],
@@ -39,7 +39,7 @@
         "vocaml.fileLocationPattern": {
           "markdownDescription": "Regular Expression for detecting file locations",
           "type": "string",
-          "default": "\"([^\"]+)\":([0-9]+)|\"([^\"]+)\", line ([0-9]+),|\"([^\"]+)\", lines ([0-9]+)-",
+          "default": "\"([^\"]+)\"(?::|, line |, lines )([0-9]+)",
           "scope": "language-overridable"
         }
       }

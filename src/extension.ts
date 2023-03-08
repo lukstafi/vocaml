@@ -4,14 +4,15 @@
 import * as vscode from 'vscode';
 
 let fileLocationPattern =
-	/"([^"]+)":([0-9]+)|"([^"]+)", line ([0-9]+),|"([^"]+)", lines ([0-9]+)-/g;
+	/"([^"]+)"(?::|, line |, lines )([0-9]+)/g;
 
 async function visitFileCurrentLine(textEditor: vscode.TextEditor) {
 	const doc = textEditor.document;
 	const line = doc.lineAt(textEditor.selection.active.line);
 	const match = fileLocationPattern.exec(line.text);
 	if (!match) { return; }
-	await vscode.commands.executeCommand('workbench.action.quickOpen', `${match[1]}:${match[2]}`);
+	await vscode.commands.executeCommand(
+		'workbench.action.quickOpen', `${match[1]}:${match[2]}`);
 }
 
 let markdownPattern =

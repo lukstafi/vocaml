@@ -18,7 +18,7 @@ Currently, VOCaml retrieves types from the first line of hover boxes, and uses r
 
 ## Extension Settings
 
-Currently, VOCaml has just one setting:
+Currently, VOCaml has just one exposed setting:
 
 * `vocaml.fileLocationPattern`: a regular expression for detecting file positions.
 
