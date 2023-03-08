@@ -41,8 +41,10 @@ let bindingAsPattern =
 function nthGroupPos(n: number, doc: vscode.TextDocument, offset: number, match: RegExpExecArray,
 	delta: number = 0) {
 	let result = offset + match.index;
+	const doublePattern = match.length > 13;
 	for (let i = 1; i < n; ++i) {
 		if (match[i]) { result += match[i].length; }
+		if (doublePattern && i > 2) { ++i; }
 	}
 	return doc.positionAt(result + delta);
 }
@@ -88,14 +90,18 @@ async function addTypeAnnots(textEditor: vscode.TextEditor) {
 	}
 	await textEditor.edit(edit => {
 		for (const ins of edits) {
-			edit.insert(ins.pos, ins.txt);
+			if (ins.pos instanceof vscode.Position) {
+				edit.insert(ins.pos, ins.txt);
+			} else {
+				edit.replace(ins.pos, ins.txt);
+			}
 		}
 	});
 }
 
 // Handles function let-bindings with up to 6 arguments (no non-identifier patterns).
 let bindingWithTypePattern =
-	/(let )([a-zA-Z_0-9']+)(\s*\([a-zA-Z_0-9']+\s*:\s*[^)]+\))?(\s*\([a-zA-Z_0-9']+\s*:\s*[^)]+\))?(\s*\([a-zA-Z_0-9']+\s*:\s*[^)]+\))?(\s*\([a-zA-Z_0-9']+\s*:\s*[^)]+\))?(\s*\([a-zA-Z_0-9']+\s*:\s*[^)]+\))?(\s*\([a-zA-Z_0-9']+\s*:\s*[^)]+\))?(\s*:\s*[^=]+)=/g;
+	/(let )([a-zA-Z_0-9']+)(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*:\s*[^=]+)=/g;
 let bindingWithTypeAsPattern =
 	/(let .+\s+as\s+)([a-zA-Z_0-9']+)(\s+:\s*[^=]+)=/g;
 
@@ -111,6 +117,11 @@ async function removeTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.Text
 	let matched: RegExpExecArray | null;
 	while ((matched = bindingWithTypePattern.exec(text)) ||
 		(matched = bindingWithTypeAsPattern.exec(text))) {
+  	// We could replace backwards so that positions are valid at the time of replacement...
+		for (let i = 3; i < matched.length - 2; i += 2) {
+			if (!matched[i] || !matched[i+1]) { continue; }
+			edit.replace(nthGroupRange(i, doc, offset, matched), ' ' + matched[i+1]);
+		}
 		const retTypeN = matched.length - 1;
 		edit.replace(nthGroupRange(retTypeN, doc, offset, matched), ' ');
 	}
