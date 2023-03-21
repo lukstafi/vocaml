@@ -34,23 +34,22 @@ async function getTypeFromHover(doc: vscode.TextDocument, pos: vscode.Position) 
 
 // Handles function let-bindings with up to 6 arguments (no non-identifier patterns).
 let bindingPattern =
-	/(let(?:%[.a-zA-Z0-9_]+)? )([a-zA-Z_0-9']+)(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?(\s+[a-zA-Z_0-9']+)?\s*=/g;
+	/(let(?:%[.a-zA-Z0-9_]+)? ~?)([a-zA-Z_0-9']+)(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?\s*=/g;
 
 let bindingAsPattern =
 	/(let(?:%[.a-zA-Z0-9_]+)? .+ as )([a-zA-Z_0-9']+)\s*=/g;
 
 function nthGroupPos(n: number, doc: vscode.TextDocument, offset: number, match: RegExpExecArray,
 	delta: number = 0) {
-	let result = offset + match.index;
-	const doublePattern = match.length > 13;
-	for (let i = 1; i < n; ++i) {
-		if (match[i]) { result += match[i].length; }
-		if (doublePattern && i > 2) { ++i; }
-	}
-	return doc.positionAt(result + delta);
+	const indices = (match as any)?.indices;
+	let result = offset + indices[n][0] + delta;
+	return doc.positionAt(result);
 }
 function nthGroupRange(n: number, doc: vscode.TextDocument, offset: number, match: RegExpExecArray) {
-	return new vscode.Range(nthGroupPos(n, doc, offset, match), nthGroupPos(n + 1, doc, offset, match));
+	const indices = (match as any)?.indices;
+	const beg = doc.positionAt(offset + indices[n][0]);
+	const end = doc.positionAt(offset + indices[n][1]);
+	return new vscode.Range(beg, end);
 }
 
 async function addTypeAnnots(textEditor: vscode.TextEditor) {
@@ -65,16 +64,18 @@ async function addTypeAnnots(textEditor: vscode.TextEditor) {
 	let matched: RegExpExecArray | null;
 	let edits: {pos: vscode.Position | vscode.Range, txt: string}[] = [];
 	while ((matched = bindingPattern.exec(text)) || (matched = bindingAsPattern.exec(text))) {
-		// Group 1 is the let-keyword. Group 3 is the first arg binding for functions.
+		// Group 1 is the let-keyword. Group 4 is the first function arg, group 3 is its surrounding
+		// whitespace and optional (label) tilde.
 		let numArgs = 0;
-		for (let i = 3; i < matched.length; ++i) {
+		for (let i = 4; i < matched.length - 2; i += 2) {
 			if (!matched[i]) { continue; }
 			++numArgs;
-			const argType = await getTypeFromHover(doc, nthGroupPos(i, doc, offset, matched, 1));
+			let argPos = nthGroupPos(i, doc, offset, matched, 1);
+			const argType = await getTypeFromHover(doc, argPos);
 			if (!argType) { continue; }
 			edits.push({
 				pos: nthGroupRange(i, doc, offset, matched),
-				txt: ' (' + matched[i].trim() + ': ' + argType + ')'
+				txt: '(' + matched[i] + ': ' + argType + ')'
 			});
 		}
 		let retType = await getTypeFromHover(doc, nthGroupPos(2, doc, offset, matched, 1));
@@ -102,7 +103,7 @@ async function addTypeAnnots(textEditor: vscode.TextEditor) {
 
 // Handles function let-bindings with up to 6 arguments (no non-identifier patterns).
 let bindingWithTypePattern =
-	/(let(?:%[.a-zA-Z0-9_]+)? )([a-zA-Z_0-9']+)(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*\(([a-zA-Z_0-9']+)\s*:\s*[^)]+\))?(\s*:\s*[^=]+)=/g;
+	/(let(?:%[.a-zA-Z0-9_]+)? )([a-zA-Z_0-9']+)((\s*~?)\(([a-zA-Z_0-9']+)\s*:\s*[^=]+?\))?((\s*~?)\(([a-zA-Z_0-9']+)\s*:\s*[^=]+?\))?((\s*~?)\(([a-zA-Z_0-9']+)\s*:\s*[^=]+?\))?((\s*~?)\(([a-zA-Z_0-9']+)\s*:\s*[^=]+?\))?((\s*~?)\(([a-zA-Z_0-9']+)\s*:\s*[^=]+?\))?((\s*~?)\(([a-zA-Z_0-9']+)\s*:\s*[^=]+?\))?(\s*:\s*[^=]+)=/g;
 let bindingWithTypeAsPattern =
 	/(let(?:%[.a-zA-Z0-9_]+)? .+\s+as\s+)([a-zA-Z_0-9']+)(\s+:\s*[^=]+)=/g;
 
@@ -119,9 +120,10 @@ async function removeTypeAnnots(textEditor: vscode.TextEditor, edit: vscode.Text
 	while ((matched = bindingWithTypePattern.exec(text)) ||
 		(matched = bindingWithTypeAsPattern.exec(text))) {
   	// We could replace backwards so that positions are valid at the time of replacement...
-		for (let i = 3; i < matched.length - 2; i += 2) {
-			if (!matched[i] || !matched[i+1]) { continue; }
-			edit.replace(nthGroupRange(i, doc, offset, matched), ' ' + matched[i+1]);
+		for (let i = 3; i < matched.length - 3; i += 3) {
+			if (!matched[i] || !matched[i+2]) { continue; }
+			edit.replace(nthGroupRange(i, doc, offset, matched),
+				(matched[i + 1] ? matched[i + 1] : '') + matched[i + 2]);
 		}
 		const retTypeN = matched.length - 1;
 		edit.replace(nthGroupRange(retTypeN, doc, offset, matched), ' ');
