@@ -15,18 +15,16 @@ async function visitFileCurrentLine(textEditor: vscode.TextEditor) {
 		'workbench.action.quickOpen', `${match[1]}:${match[2]}`);
 }
 
-let markdownPattern =
-	/^```ocaml\s*(.+)\s*```|^`\s*(.+)\s*`$/;
-
 async function getTypeFromHover(doc: vscode.TextDocument, pos: vscode.Position) {
 	const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
     'vscode.executeHoverProvider', doc.uri, pos
 	);
 	const hover = hovers[0].contents[0];
-	const val = typeof hover === 'string' ? hover : hover.value;
-	let match = markdownPattern.exec(val);
-	if (!match) { return null; }
-	return match[1];
+	let val = typeof hover === 'string' ? hover : hover.value;
+	val = val.replace('```ocaml', '');
+	val = val.replace('```', '');
+	val = val.replace('`', '');
+	return val.trim();
 }
 
 // Partition the full pattern into groups for easier computing of positions.
@@ -34,10 +32,10 @@ async function getTypeFromHover(doc: vscode.TextDocument, pos: vscode.Position) 
 
 // Handles function let-bindings with up to 6 arguments (no non-identifier patterns).
 let bindingPattern =
-	/(let(?:%[.a-zA-Z0-9_]+)? ~?)([a-zA-Z_0-9']+)(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?\s*=/g;
+	/(let(?:%[.a-zA-Z0-9_]+)? ~?)([a-zA-Z_0-9']+)(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s+~?([a-zA-Z_0-9']+))?(\s*=)/g;
 
 let bindingAsPattern =
-	/(let(?:%[.a-zA-Z0-9_]+)? .+ as )([a-zA-Z_0-9']+)\s*=/g;
+	/(let(?:%[.a-zA-Z0-9_]+)? .+ as )([a-zA-Z_0-9']+)(\s*=)/g;
 
 function nthGroupPos(n: number, doc: vscode.TextDocument, offset: number, match: RegExpExecArray,
 	delta: number = 0) {
@@ -67,7 +65,7 @@ async function addTypeAnnots(textEditor: vscode.TextEditor) {
 		// Group 1 is the let-keyword. Group 4 is the first function arg, group 3 is its surrounding
 		// whitespace and optional (label) tilde.
 		let numArgs = 0;
-		for (let i = 4; i < matched.length - 2; i += 2) {
+		for (let i = 4; i < matched.length - 3; i += 2) {
 			if (!matched[i]) { continue; }
 			++numArgs;
 			let argPos = nthGroupPos(i, doc, offset, matched, 1);
@@ -86,7 +84,7 @@ async function addTypeAnnots(textEditor: vscode.TextEditor) {
 			retType = types.join('->');
 		}
 		edits.push({
-			pos: nthGroupPos(matched.length, doc, offset, matched),
+			pos: nthGroupPos(matched.length - 1, doc, offset, matched),
 			txt: ': ' + retType.trim()
 		});
 	}
