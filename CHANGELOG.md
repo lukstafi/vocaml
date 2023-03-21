@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.1.1] -- 2023-03-21
+
+### Changed
+
+- Handle the unit value argument.
+- Update README.
+
 ## [1.1.0] -- 2023-03-21
 
 ### Fixed

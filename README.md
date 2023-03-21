@@ -10,10 +10,10 @@ VOCaml is a companion to [`ppx_minidebug`](https://github.com/lukstafi/ppx_minid
 
 ## Features and Limitations
 
-Currently, VOCaml retrieves types from the first line of hover boxes, and uses regular expressions for parsing. Its implementation is simple, but that leads to some restrictions:
+Currently, VOCaml retrieves types from the first entry of hover boxes, and uses regular expressions for parsing. Its implementation is simple, but that leads to some restrictions:
 
 - For value bindings, only single-identier and `as`-alias bindings are supported.
-- For function bindings such as `let foo bar baz = ...`, only single-identifier arguments are supported.
+- For function bindings such as `let foo bar baz = ...`, only single-identifier arguments are supported, but they can be labeled or optional. E.g. `let foo ?bar ~baz () = ...`.
 - Up to 6 arguments in function bindings are supported.
 
 ## Extension Settings
@@ -23,6 +23,10 @@ Currently, VOCaml has just one exposed setting:
 * `vocaml.fileLocationPattern`: a regular expression for detecting file positions.
 
 ## Release Notes
+
+### 1.1.1
+
+Adds labeled (and optional without defaults) arguments, unit value arguments. Fixes multiline types from hovers.
 
 ### 1.0.0
 
