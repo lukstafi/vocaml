@@ -22,7 +22,7 @@ Currently, VOCaml has just one exposed setting:
 
 * `vocaml.fileLocationPattern`: a regular expression for detecting file positions.
 
-## Release Notes
+## Release Notes highlights
 
 ### 1.1.1
 

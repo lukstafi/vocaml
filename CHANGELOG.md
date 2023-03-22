@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.1.2] -- 2023-03-22
+
+### Fixed
+
+- `let rec` patterns.
+
 ## [1.1.1] -- 2023-03-21
 
 ### Changed
